@@ -1,6 +1,6 @@
 .\" Manpage for shalarm
 .\" Contact:  hendrie.james@gmail.com
-.TH man 1 "January 2013" "shalarm version 1.0" "shalarm manual page"
+.TH man 1 "January 2013" "shalarm version 1.1" "shalarm manual page"
 .SH NAME
 shalarm \- A bash script that acts like an alarm clock
 
@@ -12,15 +12,21 @@ shalarm is a bash script that uses a pre-installed media player to act
 as an alarm clock, by using said media player to play a sound file over
 and over until you crawl out of bed.
 
-NOTE:  All times are in 24-hour format.
+NOTE:   All times are in 24-hour format.  Further, you're going to want
+        to test the program out first with the --test option, to make
+        sure that it works; if it doesn't, either install mplayer or
+        choose a different media player by editing the config file at
+        ~/.config/shalarm/shalarm.cfg
 
 .SH CONFIGURATION
 While this script will attempt to behave a certain way by default, it
-also installs a configuration file from which it reads.  If you want,
-you can copy this file (/usr/local/share/shalarm/shalarm.cfg by
-default) to ~/.config/shalarm/shalarm.cfg and edit it to your liking.
-You can also just edit it in-place, but it's generally not recommended
-that you do that.
+also installs a configuration file to /etc/shalarm.cfg.  The first time
+you run the program, it will copy that file to
+~/.config/shalarm/shalarm.cfg.  To change the media player and/or sound
+file to something other than the default, edit that file.
+
+A quick way to run the program and create that file is with the --test
+option.
 
 .SH OPTIONS
 -h or --help
@@ -33,6 +39,10 @@ that you do that.
     Set a test alarm (set alarm to ring five seconds in the future).
     This is a good way to see that the script can find a media player,
     the sound file, etc.
+
+-d or --debug
+    Print out whatever the script is trying to use for its sound file,
+    media player, etc.
 
 .SH EXAMPLES
 shalarm 22:00
@@ -61,8 +71,9 @@ alarm just that much more inconvenient for you to stop.  Whether or not
 this is a feature or a bug is up to you.
 
 .SH BUGS
-Sometimes, if you set the test alarm too close to the next hour, 06:59:58 for
-example, it may activate the test a little too far into the future (07:01-ish).
+Sometimes, if you set the test alarm too close to the next hour, 
+06:59:58 for example, it may activate the test a little too far into 
+the future (07:01-ish).
 
 Other than that, no idea.  Send 'em to me.
 

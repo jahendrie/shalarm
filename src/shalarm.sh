@@ -1,6 +1,6 @@
 #!/bin/bash
 ################################################################################
-#   shalarm.sh      |   version 0.9     |   FreeBSD License   |   2013.01.30
+#   shalarm.sh      |   version 1.1     |   FreeBSD License   |   2013.01.30
 #   James Hendrie   |   hendrie dot james at gmail dot com
 ################################################################################
 
@@ -8,6 +8,9 @@
 ##  make sure that 'findMediaPlayer' and 'findSoundFile' are both set to 1
 soundFile="ring.wav"                    #   Sound file used as your alarm tone
 mediaPlayer="play"                      #   Default media player to play sound
+defaultPrefix="/usr"                    #   Default prefix
+debugMode=0                             #   If 1, print a few variables and exit
+
 
 ##  Variables used later in the script
 findMediaPlayer=1               #   If 1, search for media players to use
@@ -16,7 +19,9 @@ ringTheAlarm=0                  #   If 1, ring the alarm (it's set to 1 later)
 testAlarm=0                     #   If 1, set the alarm to current time +5 secs
 checkInterval=1                 #   Interval to check alarm, in seconds
 useConfig=1                     #   Whether or not to use a config file
-
+createUserConfig=1              #   Whether or not to copy the config file to
+                                #   ~/.config/shalarm/shalarm.cfg if that file
+                                #   doesn't already exist
 ##  Just for funsies
 printAlarmMessage=1             #   Print a message when the alarm is ringing
 alarmMessage="WAKE UP!"         #   The message to print
@@ -72,14 +77,14 @@ function find_sound_file
 
     ##  Look in the default install directory for ring.wav.  Failing that,
     ##  check the present working directory using 'ls'
-    if [ ! -e "/usr/local/share/shalarm/ring.wav" ]; then
+    if [ ! -e "$defaultPrefix/share/shalarm/ring.wav" ]; then
         for f in $( ls ); do
             if [ $f == "ring.wav" ]; then
                 soundFile=$(readlink -f $f)
             fi
         done
     else
-        soundFile="/usr/local/share/shalarm/ring.wav"
+        soundFile="$defaultPrefix/share/shalarm/ring.wav"
     fi
 
     ##  If we can't find a sound file, tell the user and exit the program
@@ -351,7 +356,7 @@ function print_help
 {
     echo -e "Usage:  shalarm TIME\n"
     echo -e "TIME is a 24-hr formatted time string."
-    echo -e "As an example, ten PM may be formatted as follows:\n"
+    echo -e "For example, ten PM may be formatted as follows:\n"
     echo -e "   22:00:00"
     echo -e "   22:00"
     echo -e "   22"
@@ -364,30 +369,108 @@ function print_help
     echo -e "   -h or --help:      Print this help screen"
     echo -e "   -v or --version:   Print version and author info"
     echo -e "   -t or --test:      Test alarm set to 5 seconds in the future"
+    echo -e "   -d or --debug:     Check out what's going wrong (or right)"
 }
 
 ##  Function to print program and author information
 function print_version
 {
-    echo -e "shalarm version 0.9, written by James Hendrie"
+    echo -e "shalarm version 1.1, written by James Hendrie"
     echo -e "Licensed under the GPLv3 (GNU General Public License, version 3)"
 }
 
 
+##  This is just a function to print out some stuff that might be of interest
+##  to people having trouble getting this to work.
+function print_debug_info
+{
+
+    ##  Echo the values of a few key variables, formatted in a fancy way because
+    ##  I am an asshole who does that kind of thing
+    echo -e "\n\n###############################################"
+    echo -e "                DEBUG INFO                     "
+    echo -e "###############################################"
+    echo -e "\nMedia player:                      $mediaPlayer"
+    echo -e "Sound file:                        $soundFile"
+    echo -e "PrintAlarmMessage:                 $printAlarmMessage"
+    echo -e "Message:                           $alarmMessage"
+    
+    ##  Check for the existence of /etc/shalarm.cfg and report
+    echo -n "/etc/shalarm.cfg:  "
+    if [ -e "/etc/shalarm.cfg" ]; then
+        echo -e "                DOES exist"
+    else
+        echo -e "                DOES NOT exist"
+    fi
+
+    ##  Check for the existence of ~/.config/shalarm/shalarm.cfg and report
+    echo -n "~/.config/shalarm/shalarm.cfg:  "
+    if [ -e "$(readlink -f ~/.config/shalarm/shalarm.cfg)" ]; then
+        echo -e "   DOES exist"
+    else
+        echo -e "   DOES NOT exist"
+    fi
+
+    ##  Just to create some space at the bottom of the screen
+    echo -e ""
+
+}
+
+
+##  This function will copy the config file from /etc to ~/.config/shalarm
+function copy_user_config
+{
+    ##  Check to make sure the default config exists
+    if [ ! -e "/etc/shalarm.cfg" ]; then
+        echo "Error:  File does not exist (/etc/shalarm.cfg)" 1>&2
+        echo "        Cannot copy it to ~/.config/shalarm/shalarm.cfg" 1>&2
+    ##  And that it can be read from
+    elif [ ! -r "/etc/shalarm.cfg" ]; then
+        echo "Error:  Cannot read from /etc/shalarm.cfg" 1>&2
+    ##  If it passes both tests, we begin the copying process
+    else
+        ##  Check to make sure we can write to the ~/.config directory
+        if [ ! -w "$(readlink -f ~/.config)" ]; then
+            echo "Error:  Cannot write to ~/.config/shalarm/shalarm.cfg" 1>&2
+        else
+            ##  Make the directory if need be
+            if [ ! -e "$(readlink -f ~/.config/shalarm)" ]; then
+                mkdir -p "$(readlink -f ~/.config/shalarm)"
+            fi
+            ##  Finally, copy the file to the user's ~/.config/shalarm directory
+            cp "/etc/shalarm.cfg" "$(readlink -f ~/.config/shalarm/shalarm.cfg)"
+        fi
+    fi
+}
+
+
+##  This function sets the options according to the config file that's read
 function set_options
 {
+    ##  We see if we're creating a user config, assuming it doesn't exist
+    if [ $createUserConfig == 1 ]; then
+        if [ ! -e "$(readlink -f ~/.config/shalarm/shalarm.cfg)" ]; then
+            copy_user_config
+        fi
+    fi
+
+    ##  Copy the values in the original variables, since we may revert back
     oldMediaPlayer=$mediaPlayer
     oldSoundFile=$soundFile
     oldAlarmMessage=$alarmMessage
     oldPrintAlarmMessage=$printAlarmMessage
 
-    if [ -e $(readlink -f ~/.config/shalarm/shalarm.cfg) ]; then
-        source $(readlink -f ~/.config/shalarm/shalarm.cfg)
+    ##  If we can read from the user's config, then use that
+    if [ -e "$(readlink -f ~/.config/shalarm/shalarm.cfg)" ]; then
+        source "$(readlink -f ~/.config/shalarm/shalarm.cfg)"
 
-    elif [ -e "/usr/local/share/shalarm/shalarm.cfg" ]; then
-        source "/usr/local/share/shalarm/shalarm.cfg"
+    ##  Otherwise, use the default config
+    elif [ -e "/etc/shalarm.cfg" ]; then
+        source "/etc/shalarm.cfg"
     fi
 
+    ##  And now, we check a bunch of values to make sure they aren't set to
+    ##  'DEFAULT'.  If they are, we restore them to their previous values
     if [ "$mediaPlayer" == "DEFAULT" ]; then
         mediaPlayer=$oldMediaPlayer
     fi
@@ -432,6 +515,8 @@ elif [ $1 == '-v' ] || [ $1 == '--version' ]; then
     exit
 elif [ $1 == '-t' ] || [ $1 == '--test' ]; then
     testAlarm=1
+elif [ $1 == '-d' ] || [ $1 == '--debug' ]; then
+    debugMode=1
 fi
 
 
@@ -454,8 +539,13 @@ fi
 if [ $testAlarm == 1 ]; then
     set_test_alarm
 else
-    parse_alarm_string $1
-    set_alarm_time $alarmString
+    if [ $debugMode == 1 ]; then
+        print_debug_info
+        exit
+    else
+        parse_alarm_string $1
+        set_alarm_time $alarmString
+    fi
 fi
 
 

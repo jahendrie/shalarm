@@ -34,6 +34,9 @@ Arguments:
     -v or --version:
         Print version and author info
 
+    -d or --debug:
+        Print out some information about what the script is trying to do.
+
     -t or --test:
         Test out the alarm (HIGHLY RECOMMENDED)
 

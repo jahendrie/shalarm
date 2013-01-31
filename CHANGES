@@ -1,0 +1,9 @@
+0.9     Initial release
+
+1.0     Can't remember.  Probably just fixed spelling errors and such.
+
+1.1     Edited the man page and readme.  Also changed the default configuration
+        file path to /etc/shalarm.cfg, made it so that the script will attempt
+        to copy the default config to ~/.config/shalarm/shalarm.cfg if that
+        file doesn't exist, and changed the default path for the sound file to
+        /usr/share/shalarm/ring.wav

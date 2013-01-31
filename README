@@ -25,6 +25,8 @@ Description:
     I'd recommend trying it with the --test option before attempting to use this
     in any serious capacity, however.
 
+    NOTE:  All times are in 24-hour format.
+
 Arguments:
     -h or --help:
         Print a help screen

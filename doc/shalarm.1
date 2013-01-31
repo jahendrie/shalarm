@@ -1,0 +1,71 @@
+.\" Manpage for shalarm
+.\" Contact:  hendrie.james@gmail.com
+.TH man 1 "January 2013" "shalarm version 1.0" "shalarm manual page"
+.SH NAME
+shalarm \- A bash script that acts like an alarm clock
+
+.SH SYNPOSIS
+shalarm [TIME]
+
+.SH DESCRIPTION
+shalarm is a bash script that uses a pre-installed media player to act
+as an alarm clock, by using said media player to play a sound file over
+and over until you crawl out of bed.
+
+.SH CONFIGURATION
+While this script will attempt to behave a certain way by default, it
+also installs a configuration file from which it reads.  If you want,
+you can copy this file (/usr/local/share/shalarm/shalarm.cfg by
+default) to ~/.config/shalarm/shalarm.cfg and edit it to your liking.
+You can also just edit it in-place, but it's generally not recommended
+that you do that.
+
+.SH OPTIONS
+-h or --help
+    Print help and exit
+
+-v or --version
+    Print version and author information
+
+-t or --test
+    Set a test alarm (set alarm to ring five seconds in the future).
+    This is a good way to see that the script can find a media player,
+    the sound file, etc.
+
+.SH EXAMPLES
+shalarm 22:00
+    Set the alarm to 10:00 PM
+
+shalarm 20
+    Set the alarm to 8:00 PM
+
+shalarm 2330
+    Set the alarm to 11:30 PM
+
+shalarm 07.30
+    Set the alarm to 7:30 AM
+
+.SH RESTRICTIONS
+Obviously, this script requires a pre-installed media player, and it
+assumes a CLI-based interface (such as mplayer, aplay, etc.).  When
+searching for a program, it favors 'mplayer' because it seems to work
+better than aplay when playing certain files.  For this reason, you're
+going to want to have something like mplayer installed if you decide
+to use an mp3 instead of the default ring.wav file.
+
+Also, while you can use a GUI media player (at least if you're in X),
+doing so will 'steal focus' from the terminal emulator and make the
+alarm just that much more inconvenient for you to stop.  Whether or not
+this is a feature or a bug is up to you.
+
+.SH BUGS
+No idea, probably lots.  Send me an email if you find something.
+
+.SH COPYRIGHT
+Copyright \(co 2013 James Hendrie, licensed under the FreeBSD License
+(aka the Simplified BSD License).  See LICENSE.txt for details.
+This is free, open-source software.  You are free to modify and 
+redistribute it.  There is NO WARRANTY, to the extent permitted by law.
+
+.SH AUTHOR
+James Hendrie (hendrie.james@gmail.com)

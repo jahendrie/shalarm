@@ -1,0 +1,36 @@
+================================================================================
+    README file for shalarm.sh
+    2013.01.30
+================================================================================
+
+Usage:
+    shalarm [OPTION / TIME]
+
+Requirements:
+    You'll need a media player of some sort to actually get anything out of this
+    script.  I recommend 'mplayer' or something similar.
+
+Installation:
+    You don't really need to install this (it's a shell script), but it makes
+    things a little easier if you do.  To do so, as superuser and within the
+    root directory to which you've extracted the archive, type 'make install'.
+
+Uninstallation:
+    Similar to the above, except you type 'make uninstall' instead.
+
+Description:
+    It's just an alarm clock written as a bash script.  Use it however you'd use
+    an alarm.  Usually, one uses an alarm clock to wake oneself up from slumber.
+
+    I'd recommend trying it with the --test option before attempting to use this
+    in any serious capacity, however.
+
+Arguments:
+    -h or --help:
+        Print a help screen
+
+    -v or --version:
+        Print version and author info
+
+    -t or --test:
+        Test out the alarm (HIGHLY RECOMMENDED)

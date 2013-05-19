@@ -266,7 +266,12 @@ function ring_alarm
 {
     ##  If we're printing a message, then... print it
     if [ $printAlarmMessage == 1 ]; then
-        echo -e "$alarmMessage"
+        ##  If alarm message is set to fortune, print a short fortune
+        if [ "${alarmMessage^^}" == "FORTUNE" ]; then
+            echo -e "$(fortune -s)\n"
+        else
+            echo -e "$alarmMessage"
+        fi
     fi
 
     ##  Issue the system call, sending all output to /dev/null to keep things

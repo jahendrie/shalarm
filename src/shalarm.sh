@@ -1,6 +1,6 @@
 #!/bin/bash
 ################################################################################
-#   shalarm.sh      |   version 1.2     |   FreeBSD License   |   2013.05.20
+#   shalarm.sh      |   version 1.3     |   FreeBSD License   |   2013.05.20
 #   James Hendrie   |   hendrie dot james at gmail dot com
 ################################################################################
 
@@ -25,6 +25,7 @@ createUserConfig=1              #   Whether or not to copy the config file to
 ##  Just for funsies
 printAlarmMessage=1             #   Print a message when the alarm is ringing
 alarmMessage="WAKE UP!"         #   The message to print
+messageRepeat=0                 #   If 0, do not repeat.  If 1, do repeat.
 
 
 ##  This function goes through an array of commonly installed media players, and
@@ -268,9 +269,23 @@ function ring_alarm
     if [ $printAlarmMessage == 1 ]; then
         ##  If alarm message is set to fortune, print a short fortune
         if [ "${alarmMessage^^}" == "FORTUNE" ]; then
-            echo -e "$(fortune -s)\n"
+            if [ $messageRepeat == 1 ]; then
+                echo -e "$(fortune -s)\n"
+            else
+                if [ $messageRepeat == 0 ]; then
+                    echo -e "$(fortune -s)\n"
+                    messageRepeat=2
+                fi
+            fi
         else
-            echo -e "$alarmMessage"
+            if [ $messageRepeat == 1 ]; then
+                echo -e "$alarmMessage"
+            else
+                if [ $messageRepeat == 0 ]; then
+                    echo -e "$alarmMessage"
+                    messageRepeat=2
+                fi
+            fi
         fi
     fi
 

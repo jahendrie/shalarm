@@ -7,3 +7,8 @@
         to copy the default config to ~/.config/shalarm/shalarm.cfg if that
         file doesn't exist, and changed the default path for the sound file to
         /usr/share/shalarm/ring.wav
+
+1.2     stormdragon2976 (https://github.com/stormdragon2976) added the ability
+        to use a short fortune for your alarm message.
+
+1.3     Added an 'alarmRepeat' option to better accommodate the fortune option.

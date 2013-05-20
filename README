@@ -1,6 +1,6 @@
 ================================================================================
     shalarm.sh  |   James Hendrie ( hendrie dot james at gmail dot com )
-    2013.01.31  |   README file
+    2013.05.20  |   README file
 ================================================================================
 
 Usage:
@@ -8,7 +8,9 @@ Usage:
 
 Requirements:
     You'll need a media player of some sort to actually get anything out of this
-    script.  I recommend 'mplayer' or something similar.
+    script.  I recommend 'mplayer' or something similar.  If you want to use the
+    'FORTUNE' option in the config file, you'll also need the fortune program
+    installed.
 
 Installation:
     You don't really need to install this (it's a shell script), but it makes

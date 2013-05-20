@@ -1,6 +1,6 @@
 #!/bin/bash
 ################################################################################
-#   shalarm.sh      |   version 1.1     |   FreeBSD License   |   2013.01.30
+#   shalarm.sh      |   version 1.2     |   FreeBSD License   |   2013.05.20
 #   James Hendrie   |   hendrie dot james at gmail dot com
 ################################################################################
 

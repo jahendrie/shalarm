@@ -1,10 +1,11 @@
 ================================================================================
-    shalarm.sh  |   James Hendrie ( hendrie dot james at gmail dot com )
-    2013.05.20  |   README file
+    shalarm.sh  |   James Hendrie (hendrie.james@gmail.com)
+    2014.11.08  |   README file
 ================================================================================
 
 Usage:
     shalarm [OPTION / TIME]
+
 
 Requirements:
     You'll need a media player of some sort to actually get anything out of this
@@ -12,22 +13,26 @@ Requirements:
     'FORTUNE' option in the config file, you'll also need the fortune program
     installed.
 
+
 Installation:
     You don't really need to install this (it's a shell script), but it makes
     things a little easier if you do.  To do so, as superuser and within the
     root directory to which you've extracted the archive, type 'make install'.
 
+
 Uninstallation:
     Similar to the above, except you type 'make uninstall' instead.
 
+
 Description:
     It's just an alarm clock written as a bash script.  Use it however you'd use
-    an alarm.  Usually, one uses an alarm clock to wake oneself up from slumber.
+    an alarm.  Alarms are typically used to cancel sleep.
 
     I'd recommend trying it with the --test option before attempting to use this
     in any serious capacity, however.
 
     NOTE:  All times are in 24-hour format.
+
 
 Arguments:
     -h or --help:
@@ -41,6 +46,29 @@ Arguments:
 
     -t or --test:
         Test out the alarm (HIGHLY RECOMMENDED)
+
+
+Examples:
+    shalarm 14
+        Set the alarm for 14:00 (2:00 PM).
+    shalarm 1430
+        Set the alarm for 14:30 (2:30 PM).
+    shalarm 143030
+        Set the alarm for 9:00 PM.  Just kidding.  14:30:30 (2:30:30 PM).
+
+
+Configuration:
+    Configuration files are stored at /etc/shalarm.cfg and
+    $HOME/.config/shalarm/shalarm.cfg.  The second file takes precedence over
+    the first.  While a configuration file isn't strictly required, it's highly
+    recommended that you use it since it contains a couple of options not
+    presently supported by command-line arguments.
+
+    Initially the config file is installed to /etc/shalarm.cfg, but the
+    user-modifiable version is copied to $HOME/.config/shalarm/shalarm.cfg the
+    first time the script is run, including with the --test option.  It's
+    probably a good idea to run the test before anything else.
+
 
 This script is licensed under the FreeBSD License (aka, Simplified BSD License).
 Check out LICENSE.txt for more info.

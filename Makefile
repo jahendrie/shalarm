@@ -18,7 +18,7 @@ install:
 	install -g 0 -o 0 -m 0755 $(SRC)/$(SRCFILE) $(PREFIX)/bin/$(DESTFILE)
 	install -v -D -g 0 -o 0 -m 0644 $(DATA)/ring.wav $(DATAPATH)/ring.wav
 	install -v -g 0 -o 0 -m 0644 $(DATA)/shalarm.cfg $(CFGPATH)/shalarm.cfg
-	install -g 0 -o 0 -m 0644 $(DOC)/shalarm.1 $(MANPATH)
+	install -g 0 -o 0 -m 0644 $(DOC)/shalarm.1 $(MANPATH)/shalarm.1
 
 uninstall:
 	rm -f $(PREFIX)/bin/$(DESTFILE)

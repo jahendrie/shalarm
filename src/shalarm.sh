@@ -1,23 +1,28 @@
 #!/bin/bash
 ################################################################################
-#   shalarm.sh      |   version 1.3     |   FreeBSD License   |   2013.05.20
-#   James Hendrie   |   hendrie dot james at gmail dot com
+#   shalarm.sh      |   version 1.4     |   FreeBSD License   |   2014.11.07
+#   James Hendrie   |   hendrie.james@gmail.com
 ################################################################################
 
 ##  Set these to whatever works for you; alternately, don't touch them and just
 ##  make sure that 'findMediaPlayer' and 'findSoundFile' are both set to 1
 soundFile="ring.wav"                    #   Sound file used as your alarm tone
-mediaPlayer="play"                      #   Default media player to play sound
+mediaPlayer=""                          #   Default media player to play sound
+mediaPlayerOptions=""                   #   Options passed to the media player
 defaultPrefix="/usr"                    #   Default prefix
 debugMode=0                             #   If 1, print a few variables and exit
 
 
 ##  Variables used later in the script
 findMediaPlayer=1               #   If 1, search for media players to use
+mediaPlayerPID=0                #   PID of media player program
 findSoundFile=1                 #   If 1, search for the sound file
 ringTheAlarm=0                  #   If 1, ring the alarm (it's set to 1 later)
 testAlarm=0                     #   If 1, set the alarm to current time +5 secs
 checkInterval=1                 #   Interval to check alarm, in seconds
+alarmTimeout=0                  #   Time in seconds (0 or less means no timeout)
+snooze=0                        #   If 0, disabled; else, snooze for N seconds
+snoozing=0                      #   Currently snoozing
 useConfig=1                     #   Whether or not to use a config file
 createUserConfig=1              #   Whether or not to copy the config file to
                                 #   ~/.config/shalarm/shalarm.cfg if that file
@@ -27,45 +32,78 @@ printAlarmMessage=1             #   Print a message when the alarm is ringing
 alarmMessage="WAKE UP!"         #   The message to print
 messageRepeat=0                 #   If 0, do not repeat.  If 1, do repeat.
 
+##  Common prefixes
+prefixes=('/usr/bin' '/usr/local/bin' '/usr/sbin')
+prefixArraySize=3
+
+##  We trap SIGINT (ctrl-c) and execute 'control_c' function if it's issued
+trap control_c SIGINT
+
+
+
+##  This function tests the currently selected media player, if any
+function test_media_player
+{
+    ##  First, just check if whatever they've supplied works
+    if [[ -x "$mediaPlayer" ]]; then
+        echo "###   $mediaPlayer"
+        return 0
+    fi
+
+    ##  Common prefixes
+    if [[ ! -z $mediaPlayer ]]; then
+        for (( i = 0; i < $prefixArraySize; ++i )); do
+            if [[ -x "${prefixes[${i}]}/$mediaPlayer" ]]; then
+                mediaPlayer="${prefixes[${i}]}/$mediaPlayer"
+                return 0
+            else
+                echo "Cannot find media player $mediaPlayer"
+                bummerMan=1
+                return 1
+            fi
+        done
+    else
+        return 1
+    fi
+}
 
 ##  This function goes through an array of commonly installed media players, and
 ##  if it finds one, sets that as the media player to use.  If it can't find
 ##  any, then it errors out.
 function find_media_player
 {
-    mediaPlayer=0
-
     ##  The size of the array we're checking
-    arraySize=3
+    arraySize=5
 
     ##  An array of commonly installed media players
-    commonMediaPlayers=('mplayer' 'play' 'aplay')
-
-    ##  Prefixes of directories in which we'll check
-    prefix1="/usr/bin"
-    prefix2="/usr/local/bin"
+    commonMediaPlayers=('mplayer' 'mpv' 'mplayer2' 'play' 'aplay')
 
     ##  Check the directories for the possibly installed programs
-    for ((i = 0; i < $arraySize; ++i)); do
-        p1="$prefix1/${commonMediaPlayers[${i}]}"
-        p2="$prefix2/${commonMediaPlayers[${i}]}"
+    for (( p = 0; p < $prefixArraySize; ++p )); do
+        for (( m = 0; m < $arraySize; ++m )); do
+            player="${prefixes[${p}]}/${commonMediaPlayers[${m}]}"
+            if [[ -x "$player" ]]; then
 
-        ##  If we find one, set the system call and break out of the loop
-        if [ -e $p1 ]; then
-            mediaPlayer=$p1
-            break
-        elif [ -e $p2 ]; then
-            mediaPlayer=$p2
-            break
-        fi
+                ##  Let the user know their weird, off-brand media player
+                ##  doesn't work
+                if [[ ! -z $bummerMan ]]; then
+                    echo "using $player instead"
+                    unset bummerMan
+                fi
+
+                ##  Set it to God's Own media player, whatever it is
+                mediaPlayer="$player"
+
+                ##  Return out of the loop
+                return 0;
+            fi
+        done
     done
 
     ##  If we don't find one, tell the user and exit the program
-    if [ $mediaPlayer == 0 ]; then
-        echo "Error:  Can't find a media player to use" 1>&2
-        echo "Try installing 'play', 'aplay' or 'mplayer'" 1>&2
-        exit
-    fi
+    echo "Error:  Can't find a media player to use" 1>&2
+    echo "Try installing 'play', 'aplay' or 'mplayer'" 1>&2
+    exit 1
 }
 
 
@@ -96,10 +134,26 @@ function find_sound_file
 }
 
 
-##  This function tells the program what to do if it catches a SIGINT
+##  This function tells the script what to do if it catches a SIGINT
 function control_c
 {
-    exit $?
+    ##  If snoozing isn't enabled, just quit
+    if [[ ! $snooze -gt 0 ]]; then
+        echo -e "\nExiting\n"
+        exit 0
+
+    ##  If it is, and the alarm isn't ringing, quit.  If the alarm IS
+    ##  ringing, then snooze.
+    else
+        if [[ $ringTheAlarm -eq 1 ]]; then
+            echo -e "\nSnoozing for $snooze seconds\n"
+            start_snoozing
+        else
+            echo -e "\nExiting\n"
+            exit 0
+        fi
+
+    fi
 }
 
 
@@ -261,37 +315,97 @@ function set_test_alarm
 }
 
 
+
+##  This function resets the alarm to $snooze seconds ahead of whatever
+##  the current time is (when it's activated)
+function add_snooze_interval
+{
+    get_current_time
+
+    ##  Get total number of seconds
+    alarmSeconds=$(( ($currentHour * 60 * 60) + ($currentMinute * 60 ) ))
+    let alarmSeconds=$(( $alarmSeconds + $currentSecond + $snooze ))
+
+    ##  Adjust if necessary (86400 == seconds in a day)
+    while [[ $alarmSeconds -gt 86399 ]]; do
+        let alarmSeconds=$(( $alarmSeconds - 86400 ))
+    done
+
+    ##  Translate back into something usable
+    alarmHour="$( printf %02d $(( $alarmSeconds / 3600 )) )"
+    alarmMinute="$( printf %02d $(( ($alarmSeconds / 60) % 60 )) )"
+    alarmSecond="$( printf %02d $(( $alarmSeconds % 60 )) )"
+
+}
+
+
 ##  This function uses the system call to 'ring the alarm' -- in other words,
 ##  use the media player to play the sound file over and over
 function ring_alarm
 {
-    ##  If we're printing a message, then... print it
-    if [ $printAlarmMessage == 1 ]; then
-        ##  If alarm message is set to fortune, print a short fortune
-        if [ "${alarmMessage^^}" == "FORTUNE" ]; then
-            if [ $messageRepeat == 1 ]; then
-                echo -e "$(fortune -s)\n"
-            else
-                if [ $messageRepeat == 0 ]; then
+    if [[ $mediaPlayerPID -eq 0 ]] || [[ ! -e "/proc/$mediaPlayerPID" ]]; then
+
+        ##  Set it so that we're not currently snoozing
+        let snoozing=0
+
+        ##  If we're printing a message, then... print it
+        if [ $printAlarmMessage == 1 ]; then
+            ##  If alarm message is set to fortune, print a short fortune
+            if [ "${alarmMessage^^}" == "FORTUNE" ]; then
+                if [ $messageRepeat == 1 ]; then
                     echo -e "$(fortune -s)\n"
-                    messageRepeat=2
+                else
+                    if [ $messageRepeat == 0 ]; then
+                        echo -e "$(fortune -s)\n"
+                        messageRepeat=2
+                    fi
                 fi
-            fi
-        else
-            if [ $messageRepeat == 1 ]; then
-                echo -e "$alarmMessage"
             else
-                if [ $messageRepeat == 0 ]; then
+                if [ $messageRepeat == 1 ]; then
                     echo -e "$alarmMessage"
-                    messageRepeat=2
+                else
+                    if [ $messageRepeat == 0 ]; then
+                        echo -e "$alarmMessage"
+                        messageRepeat=2
+                    fi
                 fi
             fi
         fi
+
+        ##  Issue the system call, sending all output to /dev/null to keep
+        ##  things nice and clean.
+        if [[ "$mediaPlayerOptions" = "" ]]; then
+            exec "$mediaPlayer" "$soundFile" &> /dev/null &
+        else
+            exec "$mediaPlayer" "$mediaPlayerOptions" "$soundFile" &>/dev/null &
+        fi
+
+        ##  Grab the PID so that we can kill it later if we need to
+        mediaPlayerPID=$!
+    fi
+}
+
+
+function start_snoozing
+{
+    ##  Set this variable because we needs it man, we needs it
+    let snoozing=1
+
+    ##  Halt the alarm ringing
+    ringTheAlarm=0
+
+    ##  Kill the media player if it's running
+    if [[ -e "/proc/$mediaPlayerPID" ]]; then
+        kill $mediaPlayerPID
     fi
 
-    ##  Issue the system call, sending all output to /dev/null to keep things
-    ##  nice and clean
-    $mediaPlayer "$soundFile" &> /dev/null
+    ##  Add the snooze interval
+    add_snooze_interval
+
+    ##  Re-prime alarm timeout
+    if [[ $alarmTimeout -gt 0 ]]; then
+        prime_timeout
+    fi
 }
 
 
@@ -395,7 +509,7 @@ function print_help
 ##  Function to print program and author information
 function print_version
 {
-    echo -e "shalarm version 1.1, written by James Hendrie"
+    echo -e "shalarm version 1.4, written by James Hendrie"
     echo -e "Licensed under the GPLv3 (GNU General Public License, version 3)"
 }
 
@@ -410,29 +524,44 @@ function print_debug_info
     echo -e "\n\n###############################################"
     echo -e "                DEBUG INFO                     "
     echo -e "###############################################"
-    echo -e "\nMedia player:                      $mediaPlayer"
-    echo -e "Sound file:                        $soundFile"
-    echo -e "PrintAlarmMessage:                 $printAlarmMessage"
-    echo -e "Message:                           $alarmMessage"
+    echo -e "\nMedia player:\t\t\t$mediaPlayer"
+    echo -e "Sound file:\t\t\t$soundFile"
+    if [[ $printAlarmMessage -eq 1 ]]; then
+        echo -e "PrintAlarmMessage:\t\tYes"
+    else
+        echo -e "PrintAlarmMessage:\t\tNo"
+    fi
+    echo -e "Message:\t\t\t$alarmMessage"
     
     ##  Check for the existence of /etc/shalarm.cfg and report
     echo -n "/etc/shalarm.cfg:  "
     if [ -e "/etc/shalarm.cfg" ]; then
-        echo -e "                DOES exist"
+        echo -e "\t\tDOES exist"
     else
-        echo -e "                DOES NOT exist"
+        echo -e "\t\tDOES NOT exist"
     fi
 
     ##  Check for the existence of ~/.config/shalarm/shalarm.cfg and report
-    echo -n "~/.config/shalarm/shalarm.cfg:  "
+    echo -n "~/.config/shalarm/shalarm.cfg:"
     if [ -e "$(readlink -f ~/.config/shalarm/shalarm.cfg)" ]; then
-        echo -e "   DOES exist"
+        echo -e "\tDOES exist"
     else
-        echo -e "   DOES NOT exist"
+        echo -e "\tDOES NOT exist"
     fi
 
+    ##  Snooze info
+    if [[ $snooze -eq 0 ]]; then
+        echo -e "Snooze enabled:\t\t\tNo"
+    else
+        echo -e "Snooze enabled:\t\t\tYes"
+        echo -e "Snooze Interval:\t\t$snooze seconds"
+    fi
+
+    ##  Alarm timeout info
+    echo -e "Alarm timeout:\t\t\t$alarmTimeout seconds"
+
     ##  Just to create some space at the bottom of the screen
-    echo -e ""
+    echo -e ""  ##  Yeah, enjoy that superflous -e you sons of bitches
 
 }
 
@@ -469,42 +598,105 @@ function set_options
 {
     ##  We see if we're creating a user config, assuming it doesn't exist
     if [ $createUserConfig == 1 ]; then
-        if [ ! -e "$(readlink -f ~/.config/shalarm/shalarm.cfg)" ]; then
+        if [[ ! -e "$HOME/.config/shalarm/shalarm.cfg" ]]; then
             copy_user_config
         fi
     fi
 
     ##  Copy the values in the original variables, since we may revert back
     oldMediaPlayer=$mediaPlayer
+    oldMediaPlayerOptions=$mediaPlayerOptions
     oldSoundFile=$soundFile
     oldAlarmMessage=$alarmMessage
     oldPrintAlarmMessage=$printAlarmMessage
+    oldSnooze=$snooze
+    oldAlarmTimeout=$alarmTimeout
 
     ##  If we can read from the user's config, then use that
-    if [ -e "$(readlink -f ~/.config/shalarm/shalarm.cfg)" ]; then
-        source "$(readlink -f ~/.config/shalarm/shalarm.cfg)"
+    if [[ -r "$HOME/.config/shalarm/shalarm.cfg" ]]; then
+        source "$HOME/.config/shalarm/shalarm.cfg"
 
     ##  Otherwise, use the default config
-    elif [ -e "/etc/shalarm.cfg" ]; then
+    elif [ -r "/etc/shalarm.cfg" ]; then
         source "/etc/shalarm.cfg"
     fi
 
     ##  And now, we check a bunch of values to make sure they aren't set to
     ##  'DEFAULT'.  If they are, we restore them to their previous values
+
+    ##  Media player we're using
     if [ "$mediaPlayer" == "DEFAULT" ]; then
         mediaPlayer=$oldMediaPlayer
     fi
 
+    ##  Media player options
+    if [ "$mediaPlayerOptions" == "DEFAULT" ]; then
+        mediaPlayerOptions=$oldMediaPlayerOptions
+    fi
+
+    ##  Sound file to play
     if [ "$soundFile" == "DEFAULT" ]; then
         soundFile=$oldSoundFile
     fi
 
+    ##  Do we want to print an alarm message?
     if [ "$printAlarmMessage" == "DEFAULT" ]; then
         printAlarmMessage=$oldPrintAlarmMessage
     fi
 
+    ##  Which alarm message to print?
     if [ "$alarmMessage" == "DEFAULT" ]; then
         alarmMessage=$oldAlarmMessage
+    fi
+
+    ##  Is snooze enabled?
+    if [[ "$snooze" = "DEFAULT" ]]; then
+        let snooze=0
+    fi
+
+    ##  How long will the alarm ring before the script just kills itself
+    ##  0 or less means never, more than 0 means N seconds
+    if [[ "$alarmTimeout" = "DEFAULT" ]]; then
+        let snoozeTimeout=0
+    fi
+
+}
+
+
+function prime_timeout
+{
+    ##  Turn these babies into integers
+    ah=$(echo "$alarmHour" | bc)
+    am=$(echo "$alarmMinute" | bc)
+    as=$(echo "$alarmSecond" | bc)
+
+    ##  Get total seconds again
+    alarmSeconds=$(( ($ah * 60 * 60) + ($am * 60) + $as ))
+
+    ##  Set the timeout seconds
+    let timeoutSeconds=$(( $alarmSeconds + $alarmTimeout ))
+
+    ##  Get usable time from timeout seconds
+    timeoutHour=$(( $timeoutSeconds / 3600 ))
+    timeoutMinute=$(( ($timeoutSeconds / 60) % 60 ))
+    timeoutSecond=$(( $timeoutSeconds % 60 ))
+}
+
+function timeout_check
+{
+    ##  Get the current time
+    get_current_time
+
+    ##  Check for timeout
+    if [[ "$currentHour" = "$timeoutHour" ]]; then
+        if [[ "$currentMinute" = "$timeoutMinute" ]]; then
+            if [[ "$currentSecond" = "$timeoutSecond" ]]; then
+                kill $mediaPlayerPID
+                echo "Alarm timeout reached ($alarmTimeout seconds)"
+                echo "Exiting"
+                exit 0
+            fi
+        fi
     fi
 
 }
@@ -540,6 +732,11 @@ elif [ $1 == '-d' ] || [ $1 == '--debug' ]; then
 fi
 
 
+##  If we're looking for a config file, set options according to that
+if [ $useConfig == 1 ]; then
+    set_options
+fi
+
 ##  If appropriate, find the sound file
 if [ $findSoundFile == 1 ]; then
     find_sound_file
@@ -547,12 +744,13 @@ fi
 
 ##  If appropriate, find the media player
 if [ $findMediaPlayer == 1 ]; then
-    find_media_player
-fi
 
-##  If we're looking for a config file, set options according to that
-if [ $useConfig == 1 ]; then
-    set_options
+    ##  Test to see if their media player works
+    test_media_player
+
+    if [[ $? -eq 1 ]]; then
+        find_media_player
+    fi
 fi
 
 ##  If this is a test, use the test function.  Otherwise, operate as normal.
@@ -596,13 +794,40 @@ else
     echo -e "\nAlarm is ACTIVE and set to $alarmHour:$alarmMinute:$alarmSecond"
 fi
 
+if [[ $alarmTimeout -gt 0 ]]; then
+    echo "(Alarm timeout:  $alarmTimeout seconds)"
+fi
+
 echo -e "   Use CTRL-C to quit\n"
 
-##  We trap SIGINT (ctrl-c) and execute 'control_c' function if it's issued
-trap control_c SIGINT
+if [[ $snooze -gt 0 ]]; then
+    echo "Snooze is enabled:  If alarm is ringing,"
+    echo -e "CTRL-C once to snooze, twice to quit\n"
+fi
+
+
+
+##  Timeout stuff
+if [[ $alarmTimeout -gt 0 ]]; then
+    ##  Variables
+    timeoutHour=""
+    timeoutMinute=""
+    timeoutSecond=""
+    timeoutSeconds=0
+    prime_timeout
+fi
+
 
 ##  Do an alarm check every $checkInterval seconds (1 by default)
 while true; do
+    ##  Do the alarm check, daddy-o
     alarm_check
+
+    ##  Check for alarm timeout
+    if [[ $alarmTimeout -gt 0 ]]; then
+        timeout_check
+    fi
+
+    ##  Sleep for $checkInterval seconds
     sleep $checkInterval
 done

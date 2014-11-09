@@ -1,6 +1,6 @@
 .\" Manpage for shalarm
 .\" Contact:  hendrie.james@gmail.com
-.TH man 1 "November 2014" "shalarm version 1.4" "shalarm manual page"
+.TH man 1 "November 2014" "shalarm version 1.5" "shalarm manual page"
 .SH NAME
 shalarm \- A bash script that acts like an alarm clock
 
@@ -44,6 +44,13 @@ option.
     Print out whatever the script is trying to use for its sound file,
     media player, etc.
 
+--snooze N
+    Enable snooze and set the snooze length to N seconds
+
+--timeout N
+    Enable alarm timeout and set the limit to N seconds
+
+
 .SH EXAMPLES
 shalarm 22:00
     Set the alarm to 10:00 PM
@@ -56,6 +63,14 @@ shalarm 2330
 
 shalarm 07.30
     Set the alarm to 7:30 AM
+
+shalarm --snooze 300 --timeout 900 07:30
+    Same as above, except with both snooze and timeout enabled.  When
+    snooze is activated (the first CTRL-C), the alarm will quiet
+    itself for 300 seconds (five minutes).  If the alarm is left
+    ringing for 900 seconds (fifteen minutes), the script will kill
+    the media player and exit, terminating itself and the alarm.
+
 
 .SH RESTRICTIONS
 Obviously, this script requires a pre-installed media player, and it

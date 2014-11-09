@@ -17,3 +17,5 @@
         after a certain length of time if left unattended, as well as a snooze
         feature.  Both were added.  In addition, some typos / version errors
         were fixed.
+
+1.5     Added command-line args for snooze and timeout options.

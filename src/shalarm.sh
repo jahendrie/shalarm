@@ -1,6 +1,6 @@
 #!/bin/bash
 ################################################################################
-#   shalarm.sh      |   version 1.4     |   FreeBSD License   |   2014.11.07
+#   shalarm.sh      |   version 1.5     |   FreeBSD License   |   2014.11.08
 #   James Hendrie   |   hendrie.james@gmail.com
 ################################################################################
 
@@ -34,7 +34,6 @@ messageRepeat=0                 #   If 0, do not repeat.  If 1, do repeat.
 
 ##  Common prefixes
 prefixes=('/usr/bin' '/usr/local/bin' '/usr/sbin')
-prefixArraySize=3
 
 ##  We trap SIGINT (ctrl-c) and execute 'control_c' function if it's issued
 trap control_c SIGINT
@@ -46,15 +45,14 @@ function test_media_player
 {
     ##  First, just check if whatever they've supplied works
     if [[ -x "$mediaPlayer" ]]; then
-        echo "###   $mediaPlayer"
         return 0
     fi
 
     ##  Common prefixes
     if [[ ! -z $mediaPlayer ]]; then
-        for (( i = 0; i < $prefixArraySize; ++i )); do
-            if [[ -x "${prefixes[${i}]}/$mediaPlayer" ]]; then
-                mediaPlayer="${prefixes[${i}]}/$mediaPlayer"
+        for prefix in ${prefixes[@]}; do
+            if [[ -x "$prefix/$mediaPlayer" ]]; then
+                mediaPlayer="$prefix/$mediaPlayer"
                 return 0
             else
                 echo "Cannot find media player $mediaPlayer"
@@ -72,16 +70,19 @@ function test_media_player
 ##  any, then it errors out.
 function find_media_player
 {
-    ##  The size of the array we're checking
-    arraySize=5
-
     ##  An array of commonly installed media players
     commonMediaPlayers=('mplayer' 'mpv' 'mplayer2' 'play' 'aplay')
 
     ##  Check the directories for the possibly installed programs
-    for (( p = 0; p < $prefixArraySize; ++p )); do
-        for (( m = 0; m < $arraySize; ++m )); do
-            player="${prefixes[${p}]}/${commonMediaPlayers[${m}]}"
+    for prefix in ${prefixes[@]}; do
+
+        ##  Check each media player until we find one
+        for cmp in ${commonMediaPlayers[@]}; do
+
+            ##  We'll just do this here for convenience
+            player="$prefix/$cmp"
+
+            ##  Test it
             if [[ -x "$player" ]]; then
 
                 ##  Let the user know their weird, off-brand media player
@@ -485,6 +486,13 @@ function alarm_check
 }
 
 
+##  Function to print the usage information
+function print_usage
+{
+    echo -e "Usage:  shalarm [OPTION] TIME\n"
+}
+
+
 ##  Function to print the help information
 function print_help
 {
@@ -500,17 +508,19 @@ function print_help
     echo -e "As an aside, formatting it as '10:00' will get you ten AM, and"
     echo -e "'10 pm' won't work.\n"
     echo -e "Arguments:"
-    echo -e "   -h or --help:      Print this help screen"
-    echo -e "   -v or --version:   Print version and author info"
-    echo -e "   -t or --test:      Test alarm set to 5 seconds in the future"
-    echo -e "   -d or --debug:     Check out what's going wrong (or right)"
+    echo "  -h or --help:       Print this help screen"
+    echo "  -v or --version:    Print version and author info"
+    echo "  -t or --test:       Test alarm set to 5 seconds in the future"
+    echo "  -d or --debug:      Check out what's going wrong (or right)"
+    echo "  --snooze N:         Enable snooze, set interval to N seconds"
+    echo "  --timeout N:        Enable timeout, set limit to N seconds"
 }
 
 ##  Function to print program and author information
 function print_version
 {
-    echo -e "shalarm version 1.4, written by James Hendrie"
-    echo -e "Licensed under the GPLv3 (GNU General Public License, version 3)"
+    echo -e "shalarm version 1.5, written by James Hendrie"
+    echo -e "Licensed under the FreeBSD License"
 }
 
 
@@ -554,11 +564,15 @@ function print_debug_info
         echo -e "Snooze enabled:\t\t\tNo"
     else
         echo -e "Snooze enabled:\t\t\tYes"
-        echo -e "Snooze Interval:\t\t$snooze seconds"
+        echo -e "Snooze interval:\t\t$snooze seconds"
     fi
 
     ##  Alarm timeout info
-    echo -e "Alarm timeout:\t\t\t$alarmTimeout seconds"
+    if [[ $alarmTimeout -gt 0 ]]; then
+        echo -e "Alarm timeout:\t\t\t$alarmTimeout seconds"
+    else
+        echo -e "Alarm timeout:\t\t\tNo"
+    fi
 
     ##  Just to create some space at the bottom of the screen
     echo -e ""  ##  Yeah, enjoy that superflous -e you sons of bitches
@@ -704,32 +718,65 @@ function timeout_check
 
 ################################################################################
 
+##  Check the number of args
+if [[ $# -lt 1 ]]; then
+    print_usage
+    echo -e "\nUse 'shalarm --help' for more info" 1>&2
 
-##  Check the number of arguments, exit if incorrect
-if [ $# -gt 1 ]; then
-    echo "Error:  Too many arguments" 1>&2
-    echo "  Usage:  shalarm TIME" 1>&2
-    echo -e "\nUse 'shalarm --help' for more info" 1>&2
-    exit
-elif [ $# -lt 1 ]; then
-    echo "Error:  Too few arguments" 1>&2
-    echo "  Usage:  shalarm TIME" 1>&2
-    echo -e "\nUse 'shalarm --help' for more info" 1>&2
-    exit
+    exit 1
 fi
 
-##  Check the arguments
-if [ $1 == '-h' ] || [ $1 == '--help' ]; then
-    print_help
-    exit
-elif [ $1 == '-v' ] || [ $1 == '--version' ]; then
-    print_version
-    exit
-elif [ $1 == '-t' ] || [ $1 == '--test' ]; then
-    testAlarm=1
-elif [ $1 == '-d' ] || [ $1 == '--debug' ]; then
-    debugMode=1
+
+##  Process the arguments
+OPTS=$(getopt -n "$0" -o hvtd -l "help,version,test,debug,snooze:,timeout:" -- "$@")
+
+if [[ $? -ne 0 ]]; then
+    echo "ERROR:  Could not process arguments" 1>&2
+    exit 1
 fi
+
+eval set -- "$OPTS"
+
+
+while true; do
+
+    case "$1" in
+        -h|--help)
+            print_help
+            exit 0
+            shift;;
+
+        -v|--version)
+            print_version
+            exit 0
+            shift;;
+
+        -t|--test)
+            let testAlarm=1
+            shift;;
+
+        -d|--debug)
+            let debugMode=1
+            shift;;
+
+        -s|--snooze)
+            if [[ $2 = *[[:digit:]]* ]]; then
+                forceSnooze=$2
+            fi
+            shift 2;;
+
+        -t|--timeout)
+            if [[ $2 = *[[:digit:]]* ]]; then
+                forceAlarmTimeout=$2
+            fi
+            shift 2;;
+
+        --)
+            shift
+            break;;
+    esac
+done
+
 
 
 ##  If we're looking for a config file, set options according to that
@@ -752,6 +799,20 @@ if [ $findMediaPlayer == 1 ]; then
         find_media_player
     fi
 fi
+
+
+##  Here we test to see if the user passed snooze/timeout values through the
+##  command line; if so, those take precedence over defaults / config settings
+if [[ ! -z $forceSnooze ]]; then
+    let snooze=$forceSnooze
+fi
+
+if [[ ! -z $forceAlarmTimeout ]]; then
+    let alarmTimeout=$forceAlarmTimeout
+fi
+
+
+
 
 ##  If this is a test, use the test function.  Otherwise, operate as normal.
 if [ $testAlarm == 1 ]; then

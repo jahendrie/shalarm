@@ -855,6 +855,35 @@ else
     echo -e "\nAlarm is ACTIVE and set to $alarmHour:$alarmMinute:$alarmSecond"
 fi
 
+##  Print how much time is left until the alarm
+get_current_time
+leastSecond=$(( ($alarmHour - $currentHour) * 60 * 60 + \
+                ($alarmMinute - $currentMinute) * 60 + \
+                ($alarmSecond - $currentSecond) ))
+if [[ $leastSecond -lt 0 ]]; then
+    leastSecond=$(( $leastSecond + 60 * 60 * 24 ))
+fi
+leastHour=$(( $leastSecond / (60 * 60) ))
+leastSecond=$(( $leastSecond - $leastHour * (60 * 60) ))
+leastMinute=$(( $leastSecond / 60 ))
+leastSecond=$(( $leastSecond - $leastMinute * 60 ))
+
+if [[ "$leastHour" != "0" ]]; then
+    leastHour="${leastHour}h "
+else
+    leastHour=""
+fi
+if [[ "$leastMinute" != "0" || "$leastHour" != "" ]]; then
+    leastMinute="${leastMinute}m "
+else
+    leastMinute=""
+fi
+leastSecond="${leastSecond}s "
+
+echo -e "   ${leastHour}${leastMinute}${leastSecond}left to sleep\n"
+unset leastHour leastSecond leastMinute
+#  ------------------------------------
+
 if [[ $alarmTimeout -gt 0 ]]; then
     echo "(Alarm timeout:  $alarmTimeout seconds)"
 fi

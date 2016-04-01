@@ -857,9 +857,9 @@ fi
 
 ##  Print how much time is left until the alarm
 get_current_time
-leastSecond=$(( ($alarmHour - $currentHour) * 60 * 60 + \
-                ($alarmMinute - $currentMinute) * 60 + \
-                ($alarmSecond - $currentSecond) ))
+leastSecond=$(( (10#$alarmHour - $currentHour) * 60 * 60 + \
+                (10#$alarmMinute - $currentMinute) * 60 + \
+                (10#$alarmSecond - $currentSecond) ))
 if [[ $leastSecond -lt 0 ]]; then
     leastSecond=$(( $leastSecond + 60 * 60 * 24 ))
 fi

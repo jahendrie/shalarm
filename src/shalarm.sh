@@ -1,8 +1,11 @@
 #!/bin/bash
 ################################################################################
-#   shalarm.sh      |   version 1.5     |   FreeBSD License   |   2014.11.08
+#   shalarm.sh      |   version 1.6     |   FreeBSD License   |   2018-01-21
 #   James Hendrie   |   hendrie.james@gmail.com
 ################################################################################
+
+##  Script version
+VERSION="1.6"
 
 ##  Set these to whatever works for you; alternately, don't touch them and just
 ##  make sure that 'findMediaPlayer' and 'findSoundFile' are both set to 1
@@ -19,7 +22,7 @@ mediaPlayerPID=0                #   PID of media player program
 findSoundFile=1                 #   If 1, search for the sound file
 ringTheAlarm=0                  #   If 1, ring the alarm (it's set to 1 later)
 testAlarm=0                     #   If 1, set the alarm to current time +5 secs
-checkInterval=1                 #   Interval to check alarm, in seconds
+checkInterval='.5'              #   Interval to check alarm, in seconds
 alarmTimeout=0                  #   Time in seconds (0 or less means no timeout)
 snooze=0                        #   If 0, disabled; else, snooze for N seconds
 snoozing=0                      #   Currently snoozing
@@ -519,7 +522,7 @@ function print_help
 ##  Function to print program and author information
 function print_version
 {
-    echo -e "shalarm version 1.5, written by James Hendrie"
+    echo -e "shalarm version $VERSION, written by James Hendrie"
     echo -e "Licensed under the FreeBSD License"
 }
 
@@ -855,35 +858,6 @@ else
     echo -e "\nAlarm is ACTIVE and set to $alarmHour:$alarmMinute:$alarmSecond"
 fi
 
-##  Print how much time is left until the alarm
-get_current_time
-leastSecond=$(( ($alarmHour - $currentHour) * 60 * 60 + \
-                ($alarmMinute - $currentMinute) * 60 + \
-                ($alarmSecond - $currentSecond) ))
-if [[ $leastSecond -lt 0 ]]; then
-    leastSecond=$(( $leastSecond + 60 * 60 * 24 ))
-fi
-leastHour=$(( $leastSecond / (60 * 60) ))
-leastSecond=$(( $leastSecond - $leastHour * (60 * 60) ))
-leastMinute=$(( $leastSecond / 60 ))
-leastSecond=$(( $leastSecond - $leastMinute * 60 ))
-
-if [[ "$leastHour" != "0" ]]; then
-    leastHour="${leastHour}h "
-else
-    leastHour=""
-fi
-if [[ "$leastMinute" != "0" || "$leastHour" != "" ]]; then
-    leastMinute="${leastMinute}m "
-else
-    leastMinute=""
-fi
-leastSecond="${leastSecond}s "
-
-echo -e "   ${leastHour}${leastMinute}${leastSecond}left to sleep\n"
-unset leastHour leastSecond leastMinute
-#  ------------------------------------
-
 if [[ $alarmTimeout -gt 0 ]]; then
     echo "(Alarm timeout:  $alarmTimeout seconds)"
 fi
@@ -908,7 +882,7 @@ if [[ $alarmTimeout -gt 0 ]]; then
 fi
 
 
-##  Do an alarm check every $checkInterval seconds (1 by default)
+##  Do an alarm check every $checkInterval seconds (.5 by default)
 while true; do
     ##  Do the alarm check, daddy-o
     alarm_check

@@ -81,6 +81,10 @@ Configuration:
     first time the script is run, including with the --test option.  It's
     probably a good idea to run the test before anything else.
 
+    If you want to use the 'fortune' program when printing a wakeup message,
+    set the wakeup message to FORTUNE.  Obviously, the fortune program needs to
+    be installed.
+
 
 This script is licensed under the FreeBSD License (aka, Simplified BSD License).
 Check out LICENSE.txt for more info.

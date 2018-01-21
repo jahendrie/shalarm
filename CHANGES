@@ -20,4 +20,4 @@
 
 1.5     Added command-line args for snooze and timeout options.
 
-1.6     Changed the sleep interval to .5 seconds, just to be safe.
+1.6     Changed the sleep interval to .5 seconds.  Updated the docs.

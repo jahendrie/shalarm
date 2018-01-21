@@ -88,3 +88,8 @@ Configuration:
 
 This script is licensed under the FreeBSD License (aka, Simplified BSD License).
 Check out LICENSE.txt for more info.
+
+
+AUTHOR
+    James Hendrie <hendrie.james@gmail.com>
+    with contributions from Ilya Pikulin and stormdragon2976.

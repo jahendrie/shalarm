@@ -19,7 +19,6 @@ debugMode=0                             #   If 1, print a few variables and exit
 ##  Variables used later in the script
 findMediaPlayer=1               #   If 1, search for media players to use
 mediaPlayerPID=0                #   PID of media player program
-findSoundFile=1                 #   If 1, search for the sound file
 ringTheAlarm=0                  #   If 1, ring the alarm (it's set to 1 later)
 testAlarm=0                     #   If 1, set the alarm to current time +5 secs
 checkInterval='.5'              #   Interval to check alarm, in seconds
@@ -624,7 +623,6 @@ function set_options
     ##  Copy the values in the original variables, since we may revert back
     oldMediaPlayer=$mediaPlayer
     oldMediaPlayerOptions=$mediaPlayerOptions
-    oldSoundFile=$soundFile
     oldAlarmMessage=$alarmMessage
     oldPrintAlarmMessage=$printAlarmMessage
     oldSnooze=$snooze
@@ -654,7 +652,7 @@ function set_options
 
     ##  Sound file to play
     if [ "$soundFile" == "DEFAULT" ]; then
-        soundFile=$oldSoundFile
+        find_sound_file
     fi
 
     ##  Do we want to print an alarm message?
@@ -788,10 +786,6 @@ if [ $useConfig == 1 ]; then
     set_options
 fi
 
-##  If appropriate, find the sound file
-if [ $findSoundFile == 1 ]; then
-    find_sound_file
-fi
 
 ##  If appropriate, find the media player
 if [ $findMediaPlayer == 1 ]; then
@@ -835,13 +829,21 @@ fi
 ########################################        MAIN LOOP
 
 ##  We double-check to make sure that $mediaPlayer and $soundFile exist
-if [ ! -e "$soundFile" ]; then
-    echo "Error:  Cannot find sound file $soundFile" 1>&2
-    exit
-elif [ ! -r "$soundFile" ]; then
-    echo "Error:  Cannot read from file $soundFile" 1>&2
-    exit
+if [ ! -r "$soundFile" ]; then
+
+    ##  Now we try to find the default
+    echo -n "Error:  Can't read from '$soundFile'" 1>&2
+    find_sound_file
+
+    ##  If we can't, bail out
+    if [[ ! -r "$soundFile" ]]; then
+        echo -e "\nError:  Cannot read from file '$soundFile', aborting." 1>&2
+        exit 1
+    fi
+
+    echo ", using default." 1>&2
 fi
+
 
 if [ ! -e "$mediaPlayer" ]; then
     echo "Error:  Cannot find media player $mediaPlayer" 1>&2

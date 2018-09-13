@@ -21,3 +21,5 @@
 1.5     Added command-line args for snooze and timeout options.
 
 1.6     Changed the sleep interval to .5 seconds.  Updated the docs.
+
+1.65    Fixed the 'find sound file' behavior

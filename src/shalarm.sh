@@ -1,11 +1,11 @@
 #!/bin/bash
 ################################################################################
-#   shalarm.sh      |   version 1.6     |   FreeBSD License   |   2014.11.08
+#   shalarm.sh      |   version 1.65    |   FreeBSD License   |   2018.09.13
 #   James Hendrie   |   hendrie.james@gmail.com
 ################################################################################
 
 ##  Script version
-VERSION="1.6"
+VERSION="1.65"
 
 ##  Set these to whatever works for you; alternately, don't touch them and just
 ##  make sure that 'findMediaPlayer' and 'findSoundFile' are both set to 1

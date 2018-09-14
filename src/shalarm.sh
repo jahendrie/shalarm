@@ -1,11 +1,11 @@
 #!/bin/bash
 ################################################################################
-#   shalarm.sh      |   version 1.65    |   FreeBSD License   |   2018.09.13
+#   shalarm.sh      |   version 1.7     |   FreeBSD License   |   2018.09.14
 #   James Hendrie   |   hendrie.james@gmail.com
 ################################################################################
 
 ##  Script version
-VERSION="1.65"
+VERSION="1.7"
 
 ##  Set these to whatever works for you; alternately, don't touch them and just
 ##  make sure that 'findMediaPlayer' and 'findSoundFile' are both set to 1
@@ -34,8 +34,6 @@ printAlarmMessage=1             #   Print a message when the alarm is ringing
 alarmMessage="WAKE UP!"         #   The message to print
 messageRepeat=0                 #   If 0, do not repeat.  If 1, do repeat.
 
-##  Common prefixes
-prefixes=('/usr/bin' '/usr/local/bin' '/usr/sbin')
 
 ##  We trap SIGINT (ctrl-c) and execute 'control_c' function if it's issued
 trap control_c SIGINT
@@ -50,18 +48,20 @@ function test_media_player
         return 0
     fi
 
-    ##  Common prefixes
+    ## If they've set something but it ain't executing
     if [[ ! -z $mediaPlayer ]]; then
-        for prefix in ${prefixes[@]}; do
-            if [[ -x "$prefix/$mediaPlayer" ]]; then
-                mediaPlayer="$prefix/$mediaPlayer"
-                return 0
-            else
-                echo "Cannot find media player $mediaPlayer"
-                bummerMan=1
-                return 1
-            fi
-        done
+        if [[ -x "$(which ${mediaPlayer})" ]]; then
+
+            ##  Yay we found it
+            mediaPlayer="$(which ${mediaPlayer})"
+            return 0
+        else
+
+            ##  No luck
+            echo "Cannot find media player $mediaPlayer"
+            bummerMan=1
+            return 1
+        fi
     else
         return 1
     fi
@@ -73,16 +73,13 @@ function test_media_player
 function find_media_player
 {
     ##  An array of commonly installed media players
-    commonMediaPlayers=('mplayer' 'mpv' 'mplayer2' 'play' 'aplay')
-
-    ##  Check the directories for the possibly installed programs
-    for prefix in ${prefixes[@]}; do
+    commonMediaPlayers=('mplayer' 'mpv' 'mplayer2' 'play' 'aplay' 'cvlc')
 
         ##  Check each media player until we find one
         for cmp in ${commonMediaPlayers[@]}; do
 
             ##  We'll just do this here for convenience
-            player="$prefix/$cmp"
+            player="$(which ${cmp})"
 
             ##  Test it
             if [[ -x "$player" ]]; then
@@ -101,7 +98,6 @@ function find_media_player
                 return 0;
             fi
         done
-    done
 
     ##  If we don't find one, tell the user and exit the program
     echo "Error:  Can't find a media player to use" 1>&2

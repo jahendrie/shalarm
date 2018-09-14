@@ -22,4 +22,4 @@
 
 1.6     Changed the sleep interval to .5 seconds.  Updated the docs.
 
-1.65    Fixed the 'find sound file' behavior
+1.65    Fixed the 'find sound file' behavior and the Makefile
